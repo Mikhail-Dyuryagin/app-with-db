@@ -12,12 +12,12 @@ import (
 var db *sql.DB
 
 type Product struct {
-  Id int
-  Name string
-  Description string
-  Balance int
-  Price int
-  Category string
+  id int
+  name string
+  description string
+  balance int
+  price int
+  category string
 }
 
 type Products struct {
@@ -35,8 +35,9 @@ func main() {
   defer db.Close()
 
   fmt.Println("Starting server...")
-  http.HandleFunc("/v1/products/", getProducts)
+
   http.HandleFunc("/v1/products/add", addProduct)
+  http.HandleFunc("/v1/products/", getProducts)
   log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
@@ -51,7 +52,7 @@ func addProduct(w http.ResponseWriter, r *http.Request) {
     if err != nil {
         panic(err)
     }
-    query := fmt.Sprintf("INSERT INTO products(Id, Name, Description, Balance, Price, Category) VALUES(%d,'%s', '%s', %d, %d, '%s')", g_product.Id, g_product.Name, g_product.Description, g_product.Balance, g_product.Price, g_product.Category)
+    query := fmt.Sprintf("INSERT INTO products(name, description, balance, discount, category) VALUES('%s', '%s', %d, %d, %d) RETURNING id", g_product.name, g_product.description, g_product.balance, g_product.price, g_product.category)
 
     fmt.Println("# INSERT QUERY: %s", query)
 
@@ -72,8 +73,9 @@ func addProduct(w http.ResponseWriter, r *http.Request) {
   }
 }
 
-
-
+func (c Product) String() string {
+    return fmt.Sprintf("[%d, %d, %d]", c.Red, c.Green, c.Blue)
+}
 
 func getProducts(w http.ResponseWriter, r *http.Request) {
   if r.Method != "GET" {
@@ -82,7 +84,7 @@ func getProducts(w http.ResponseWriter, r *http.Request) {
     w_array := Products{}
 
     fmt.Println("# Querying")
-    rows, err := db.Query("SELECT Id,Name,Description,Category from products")
+    rows, err := db.Query("SELECT id,name,description,category from products")
     if err != nil {
         panic(err)
     }
@@ -90,11 +92,11 @@ func getProducts(w http.ResponseWriter, r *http.Request) {
     for rows.Next() {
       w_product := Product{}
 
-      err = rows.Scan(&w_product.Id,&w_product.Name,&w_product.Description,&w_product.Category)
+      err = rows.Scan(&w_product.id,&w_product.name,&w_product.description,&w_product.category)
       if err != nil {
         panic(err)
       }
-
+	 fmt.Fprintf("Product", w_product)
       w_array.Products = append(w_array.Products, w_product)
 
     }
